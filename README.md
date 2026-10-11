@@ -2,7 +2,7 @@
 
 A small web app (GitHub Pages + Supabase) for tracking household expenses.
 
-**Live site:** https://stalinnetcode.github.io/House-Expenses/
+**Live site:** https://housexpenses.sklss.co.uk/ (also https://stalinnetcode.github.io/House-Expenses/)
 
 ## Features
 - **Sign-in required** (Supabase Auth). Only e-mails listed under *Settings → Household members* can see or change data.
