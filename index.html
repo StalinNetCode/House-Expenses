@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>House Expenses</title>
+  <meta name="description" content="Household expense tracker with receipt scanning, Excel/PDF export and charts.">
+  <meta name="theme-color" content="#1f5f4a">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- ============ AUTH ============ -->
+  <section id="auth-view" class="auth hidden">
+    <div class="auth-card">
+      <div class="brand"><img src="assets/icon.svg" alt="" width="40" height="40"><div><h1>House Expenses</h1><p class="muted">Sign in to your household</p></div></div>
+      <form id="auth-form" autocomplete="on">
+        <label>Email<input type="email" id="auth-email" required autocomplete="email"></label>
+        <label>Password<input type="password" id="auth-password" required minlength="6" autocomplete="current-password"></label>
+        <button class="btn primary" type="submit" id="auth-submit">Sign in</button>
+        <div class="auth-links">
+          <button type="button" class="link" id="auth-toggle">Create an account</button>
+          <button type="button" class="link" id="auth-forgot">Forgot password?</button>
+        </div>
+        <p id="auth-msg" class="msg" role="status"></p>
+      </form>
+    </div>
+  </section>
+
+  <section id="denied-view" class="auth hidden">
+    <div class="auth-card">
+      <h1>Not on the household list</h1>
+      <p class="muted">You're signed in as <b id="denied-email"></b>, but this address hasn't been added to the household yet. Ask an existing member to add it under <b>Settings → Household members</b>.</p>
+      <button class="btn" id="denied-signout">Sign out</button>
+    </div>
+  </section>
+
+  <!-- ============ APP ============ -->
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <div class="brand small"><img src="assets/icon.svg" alt="" width="28" height="28"><span>House Expenses</span></div>
+      <div class="topbar-right">
+        <select id="year-select" aria-label="Year"></select>
+        <button class="icon-btn" id="signout" title="Sign out" aria-label="Sign out">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <nav class="tabs" id="tabs">
+      <button data-view="add" class="active"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>Add</span></button>
+      <button data-view="list"><svg viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Expenses</span></button>
+      <button data-view="charts"><svg viewBox="0 0 24 24"><path d="M21.2 15.9A10 10 0 1 1 8 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/></svg><span>Charts</span></button>
+      <button data-view="export"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg><span>Export</span></button>
+      <button data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span></button>
+    </nav>
+
+    <main>
+      <!-- ADD -->
+      <section class="view" id="view-add">
+        <div class="grid-2">
+          <div class="card">
+            <h2>Scan a receipt</h2>
+            <p class="muted">Take a photo or pick an image/PDF. The amount, date and shop are read automatically — check them before saving.</p>
+            <label class="dropzone" id="dropzone">
+              <input type="file" id="receipt-input" accept="image/*,application/pdf" hidden>
+              <svg viewBox="0 0 24 24" width="36" height="36"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              <span><b>Upload receipt</b><br><small class="muted">Tap to use the camera or choose a file</small></span>
+            </label>
+            <div id="ocr-status" class="ocr-status hidden"><div class="bar"><i id="ocr-bar"></i></div><span id="ocr-text">Reading receipt…</span></div>
+            <div id="receipt-preview" class="receipt-preview hidden"><img id="receipt-img" alt="Receipt preview"><button type="button" class="link" id="receipt-clear">Remove receipt</button></div>
+            <details id="ocr-raw-wrap" class="hidden"><summary>Text read from receipt</summary><pre id="ocr-raw"></pre></details>
+          </div>
+
+          <form class="card" id="expense-form">
+            <h2 id="form-title">New expense</h2>
+            <input type="hidden" id="f-id">
+            <div class="row">
+              <label>Date<input type="date" id="f-date" required></label>
+              <label>Month sheet<select id="f-sheet" required></select></label>
+            </div>
+            <div class="row">
+              <label>Category<select id="f-category" required></select></label>
+              <label>Price (£)<input type="text" inputmode="decimal" id="f-amount" placeholder="0.00 or 32.9+23.41" required></label>
+            </div>
+            <label>Purchased by<select id="f-person" required></select></label>
+            <label>Remarks / details<input type="text" id="f-remarks" placeholder="e.g. Card: ALDI|Tonbridge"></label>
+            <p class="hint muted" id="f-receipt-note"></p>
+            <div class="actions">
+              <button type="button" class="btn ghost hidden" id="f-cancel">Cancel edit</button>
+              <button type="submit" class="btn primary" id="f-save">Save expense</button>
+            </div>
+            <p id="form-msg" class="msg" role="status"></p>
+          </form>
+        </div>
+      </section>
+
+      <!-- LIST -->
+      <section class="view hidden" id="view-list">
+        <div class="month-chips" id="month-chips"></div>
+        <div class="stats" id="list-stats"></div>
+        <div class="card flush">
+          <div class="list-toolbar">
+            <input type="search" id="list-search" placeholder="Search remarks, category, person…">
+            <select id="list-category"><option value="">All categories</option></select>
+          </div>
+          <div class="table-wrap">
+            <table class="table" id="expense-table">
+              <thead><tr><th>Date</th><th>Category</th><th class="num">Price</th><th>By</th><th>Remarks</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p class="empty hidden" id="list-empty">No expenses in this month yet.</p>
+        </div>
+      </section>
+
+      <!-- CHARTS -->
+      <section class="view hidden" id="view-charts">
+        <div class="card controls">
+          <label>Period<select id="chart-period"></select></label>
+          <label class="check"><input type="checkbox" id="chart-savings"> Include savings</label>
+          <div class="spacer"></div>
+          <button class="btn" id="charts-pdf">Charts PDF</button>
+          <button class="btn whatsapp" id="charts-share">Share</button>
+        </div>
+        <div class="stats" id="chart-stats"></div>
+        <div class="chart-grid">
+          <div class="card chart-card wide"><div class="chart-head"><h3>Spending per month</h3><button class="link" data-png="monthly">PNG</button></div><div class="chart-box tall"><canvas id="chart-monthly"></canvas></div></div>
+          <div class="card chart-card"><div class="chart-head"><h3 id="pie-title">By category</h3><button class="link" data-png="pie">PNG</button></div><div class="chart-box"><canvas id="chart-pie"></canvas></div></div>
+          <div class="card chart-card"><div class="chart-head"><h3>By category (£)</h3><button class="link" data-png="catbar">PNG</button></div><div class="chart-box"><canvas id="chart-catbar"></canvas></div></div>
+          <div class="card chart-card"><div class="chart-head"><h3>By person</h3><button class="link" data-png="person">PNG</button></div><div class="chart-box"><canvas id="chart-person"></canvas></div></div>
+          <div class="card chart-card"><div class="chart-head"><h3>Year by year</h3><button class="link" data-png="years">PNG</button></div><div class="chart-box"><canvas id="chart-years"></canvas></div></div>
+        </div>
+      </section>
+
+      <!-- EXPORT -->
+      <section class="view hidden" id="view-export">
+        <div class="grid-2">
+          <div class="card">
+            <h2>Excel workbook</h2>
+            <p class="muted">Your original workbook with every month sheet filled from the database. Formatting, drop-downs and formulas stay exactly as in your template.</p>
+            <div class="actions left">
+              <button class="btn primary" id="xlsx-download">Download Excel</button>
+              <button class="btn whatsapp" id="xlsx-share">Share to WhatsApp</button>
+            </div>
+            <p class="msg" id="xlsx-msg"></p>
+          </div>
+          <div class="card">
+            <h2>PDF report</h2>
+            <label>Period<select id="pdf-period"></select></label>
+            <label class="check"><input type="checkbox" id="pdf-charts" checked> Include charts</label>
+            <div class="actions left">
+              <button class="btn primary" id="pdf-download">Download PDF</button>
+              <button class="btn whatsapp" id="pdf-share">Share to WhatsApp</button>
+            </div>
+            <p class="msg" id="pdf-msg"></p>
+          </div>
+          <div class="card">
+            <h2>Quick summary</h2>
+            <p class="muted">Send a short text summary of the selected period straight to a WhatsApp chat.</p>
+            <label>Period<select id="sum-period"></select></label>
+            <pre class="summary-preview" id="sum-preview"></pre>
+            <div class="actions left"><button class="btn whatsapp" id="sum-share">Send on WhatsApp</button><button class="btn" id="csv-download">Download CSV</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SETTINGS -->
+      <section class="view hidden" id="view-settings">
+        <div class="grid-2">
+          <div class="card">
+            <h2>Workbook template</h2>
+            <p class="muted">The Excel file used for exports. Upload your <b>UK_House_Expenses</b> workbook once; it's stored privately in Supabase.</p>
+            <p id="tpl-status" class="pill">Checking…</p>
+            <label class="btn">Upload template<input type="file" id="tpl-input" accept=".xlsx" hidden></label>
+            <hr>
+            <h3>Import rows from a workbook</h3>
+            <p class="muted">Replaces the database rows of every month sheet found in the file (e.g. Jan_2027 … Dec_2027) with the rows in that file.</p>
+            <label class="btn">Choose workbook to import<input type="file" id="import-input" accept=".xlsx" hidden></label>
+            <p class="msg" id="import-msg"></p>
+          </div>
+          <div class="card">
+            <h2>Household members</h2>
+            <p class="muted">Only these email addresses can see or change the data, even if someone else creates an account.</p>
+            <ul class="chips-list" id="members-list"></ul>
+            <form class="inline-form" id="member-form"><input type="email" id="member-email" placeholder="name@example.com" required><button class="btn">Add</button></form>
+            <hr>
+            <h3>Categories</h3>
+            <ul class="chips-list" id="categories-list"></ul>
+            <form class="inline-form" id="category-form"><input id="category-name" placeholder="New category" required><button class="btn">Add</button></form>
+            <h3>People</h3>
+            <ul class="chips-list" id="people-list"></ul>
+            <form class="inline-form" id="person-form"><input id="person-name" placeholder="New person" required><button class="btn">Add</button></form>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+  <script src="js/config.js"></script>
+  <script src="js/xlsx-export.js"></script>
+  <script src="js/receipt.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
